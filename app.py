@@ -38,7 +38,7 @@ if uploaded_file is not None:
 
     label_df = df["Perkiraan Ongkos Kirim"]
 
-    fitur_df = df[[
+    fitur_kolom = [
         "order_id",
         "total_qty",
         "product_categories",
@@ -47,7 +47,9 @@ if uploaded_file is not None:
         "Provinsi",
         "Waktu Pesanan Dibuat",
         "order_date"
-    ]].copy()
+    ]
+
+    fitur_df = df[fitur_kolom].copy()
 
     encoder = LabelEncoder()
 
@@ -122,6 +124,74 @@ if uploaded_file is not None:
     })
 
     st.dataframe(hasil_df)
+
+    st.subheader("Prediksi Perkiraan Ongkos Kirim Baru")
+
+    total_qty_input = st.number_input(
+        "Total Quantity",
+        min_value=1,
+        value=1
+    )
+
+    product_input = st.selectbox(
+        "Product Categories",
+        df["product_categories"].unique()
+    )
+
+    metode_input = st.selectbox(
+        "Metode Pembayaran",
+        df["Metode Pembayaran"].unique()
+    )
+
+    kota_input = st.selectbox(
+        "Kota/Kabupaten",
+        df["Kota/Kabupaten"].unique()
+    )
+
+    provinsi_input = st.selectbox(
+        "Provinsi",
+        df["Provinsi"].unique()
+    )
+
+    waktu_input = st.selectbox(
+        "Waktu Pesanan Dibuat",
+        df["Waktu Pesanan Dibuat"].unique()
+    )
+
+    tanggal_input = st.selectbox(
+        "Order Date",
+        df["order_date"].unique()
+    )
+
+    if st.button("Prediksi Ongkos Kirim"):
+        data_baru = pd.DataFrame({
+            "order_id": ["ORD_BARU"],
+            "total_qty": [total_qty_input],
+            "product_categories": [product_input],
+            "Metode Pembayaran": [metode_input],
+            "Kota/Kabupaten": [kota_input],
+            "Provinsi": [provinsi_input],
+            "Waktu Pesanan Dibuat": [waktu_input],
+            "order_date": [tanggal_input]
+        })
+
+        gabungan = pd.concat([
+            df[fitur_kolom],
+            data_baru
+        ])
+
+        for col in gabungan.columns:
+            gabungan[col] = encoder.fit_transform(
+                gabungan[col].astype(str)
+            )
+
+        data_baru_encoded = gabungan.tail(1)
+
+        data_baru_scaled = scaler.transform(data_baru_encoded)
+
+        prediksi = model.predict(data_baru_scaled)
+
+        st.success(f"Perkiraan Ongkos Kirim: Rp {prediksi[0]:,.0f}")
 
 else:
     st.info("Silakan upload dataset CSV terlebih dahulu.")
